@@ -23,7 +23,7 @@ var app = {
 
   addMessage: function(message) {
     // console.log(message);
-    $('#chats').append('<li>' + message.username + "(" + message.createdAt + ")"
+    $('#chats').append('<li>' + message.username /*+ "(" + message.createdAt + ")"*/
       + ": " + message.text + '</li>');
   },
 
@@ -32,13 +32,16 @@ var app = {
   },
 
   send: function() {
+    console.log(app.message);
     $.ajax({
       // always use this url
-      url: this.server,
+      url: 'https://api.parse.com/1/classes/chatterbox',
       type: 'POST',
       data: JSON.stringify(app.message),
       contentType: 'application/json',
       success: function (data) {
+    console.log(data);
+
         console.log('chatterbox: Message sent');
       },
       error: function (data) {
@@ -49,30 +52,22 @@ var app = {
   },
 
   fetch: function() {
-    $.ajax({
-      // always use this url
-      url: this.server,
-      type: 'GET',
-      data: JSON.stringify(app.message),
-      contentType: 'application/json',
-      success: function (data) {
+    $.get('https://api.parse.com/1/classes/chatterbox',{"order": "-updatedAt"},
+      function (data) {
+    console.log(data);
+
         console.log('chatterbox: Message received');
-        for(var i = data.results.length -1; i >= 0; i--) {
+        for(var i = 0; i < data.results.length; i++) {
           if(data.results[i].text && data.results[i].text.indexOf('<script>') >= 0) {
            data.results[i].text = escapeHtml(data.results[i].text);
           }
           app.addMessage(data.results[i]);
-          // console.log(data.results[i].text.indexOf('<script>'));
         }
-      },
-      error: function (data) {
-        // see: https://developer.mozilla.org/en-US/docs/Web/API/console.error
-        console.error('chatterbox: Failed to retrieve message');
       }
-    });
-  },
+    );
+  }
+}
 
-};
 
  var entityMap = {
     "&": "&amp;",
@@ -96,6 +91,17 @@ $(document).ready(function() {
   $('#refresh').on('click', function() {
     app.clearMessages();
     app.fetch();
+  });
+
+  $('.submit').on('click', function() {
+    var path = window.location.search;
+    var username = path.substring(path.indexOf('='), path.length);
+    var value = $('#message').val();
+    app.message.username = username;
+    app.message.text = value;
+    app.message.roomname = "lobby";
+    app.send();
+//    app.addMessage(app.message);
   });
 });
 
