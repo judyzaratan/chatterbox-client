@@ -9,8 +9,8 @@ var app = {
     console.log(typeof window.location.search);
     var username = escapeHtml(path.substring(path.lastIndexOf('=') + 1, path.length));
     app.myUsername = username;
-
   },
+  currentRoom:"",
   server: 'https://api.parse.com/1/classes/chatterbox',
   myUsername: "",
   roomnames: {},
@@ -19,6 +19,7 @@ var app = {
           text: 'It\'s good to be the king',
           roomname: 'lobby'
   },
+  messageList:[],
   friendList: {},
   addFriend: function(friend) {
     if(!this.friendList[friend] && (friend !== this.myUsername)){
@@ -28,10 +29,11 @@ var app = {
   },
 
   clearMessages: function() {
-    $('#chats').html("");
+    $('#chats').html("Chats");
   },
 
   addMessage: function(message) {
+    console.log(message);
     if(app.friendList[message.username]) {
       $('#chats').append('<li style="font-weight:bold">' + '<a class="username" href="#">'+ message.username + '</a>' /*+ "(" + message.createdAt + ")"*/
         + ": " + message.text + '</li>');
@@ -84,13 +86,30 @@ var app = {
           data.results[i].text = escapeHtml(data.results[i].text);
           data.results[i].roomname = escapeHtml(data.results[i].roomname);
           data.results[i].username = escapeHtml(data.results[i].username);
-          app.addMessage(data.results[i]);
+          app.messageList.push(data.results[i]);
           app.addRoom(data.results[i].roomname);
         }
       }
     );
+  },
+  enterRoom: function(roomName){
+    console.log(roomName);
+    console.log($('title'));
+    $('title').html("");
+    $('h1').text("chatterbox: " + roomName);
+    this.clearMessages();
+    this.fetch();
+    for(var i = 0; i < this.messageList.length; i++){
+      if(this.messageList[i].roomname === roomName){
+        this.addMessage(this.messageList[i]);
+
+      }
+    }
+
+
+
   }
-}
+};
 
 
  var entityMap = {
@@ -110,13 +129,20 @@ var app = {
 
 $(document).ready(function() {
   app.init();
-  app.fetch();
+  app.fetch();//store the messages in a property from the fetch
+  //app.enterRoom("lobby");//function should filter fetchlist and display messages using the addmessage method
+
+
 
 
   $('#refresh').on('click', function(e) {
     e.preventDefault();
     app.clearMessages();
     app.fetch();
+    if(app.currentRoom){
+      app.enterRoom(app.currentRoom);
+    }
+
   });
 
   $('form').submit(function(e) {
@@ -131,9 +157,10 @@ $(document).ready(function() {
     app.handleSubmit(app.myUsername, "", value);
   });
 
-  // $(document).delegate('.room','click',function(){
-  //   app.addFriend($(this).text());
-  // });
+  $(document).delegate('.room','click',function(){
+    app.enterRoom($(this).text());
+    app.currentRoom = $(this).text();
+  });
 
   $(document).delegate('.username','click',function(){
     app.addFriend($(this).text());
